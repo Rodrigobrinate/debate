@@ -23,6 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Constantes ---
     const API_KEY_STORAGE = 'gemini_api_key';
     const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
+    
+    // NOVO: Função de Delay
+    /**
+     * Cria uma pausa (delay) assíncrona.
+     * @param {number} ms - O tempo de espera em milissegundos.
+     */
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 
     // --- Event Listeners ---
     loadToken();
@@ -84,6 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
+                // ATUALIZADO: Tratamento de erro 429 (Too Many Requests)
+                if (response.status === 429) {
+                    throw new Error("Erro 429: Muitas requisições. O limite de taxa da API foi atingido. Tente novamente mais tarde.");
+                }
                 const errorBody = await response.json();
                 let errorMsg = errorBody.error ? errorBody.error.message : 'Erro desconhecido na API';
                 if (errorBody.error && errorBody.error.status === 'INVALID_ARGUMENT') {
@@ -129,17 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function appendLog(agentName, message, agentIndex) {
         const logEntry = document.createElement('div');
-        // Usa o módulo (%) para ciclar entre as 4 classes de cores definidas no CSS
         logEntry.className = `debate-turn agent-color-${agentIndex % 4}`;
         logEntry.innerHTML = `<strong>${agentName}:</strong><p>${message.replace(/\n/g, '<br>')}</p>`;
         debateLog.appendChild(logEntry);
-        // Rola para a nova mensagem
         logEntry.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
     // --- Lógica Principal ---
 
-    // Passo 1: Gerar os campos de input para as personalidades
     function setupAgentInputs() {
         const agentCount = parseInt(agentCountInput.value, 10);
         
@@ -148,8 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        showError(null); // Limpa erros
-        agentPersonalitiesDiv.innerHTML = ''; // Limpa campos antigos
+        showError(null); 
+        agentPersonalitiesDiv.innerHTML = ''; 
 
         for (let i = 0; i < agentCount; i++) {
             const div = document.createElement('div');
@@ -168,16 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
             agentPersonalitiesDiv.appendChild(div);
         }
 
-        // Mostra a seção do tópico do debate
         topicSetupDiv.style.display = 'block';
     }
 
-    // Passo 2: Iniciar o debate
     async function startDebate() {
         showError(null);
         debateLog.innerHTML = '';
         
-        // --- 1. Validação dos Inputs ---
         const apiKey = localStorage.getItem(API_KEY_STORAGE);
         if (!apiKey) {
             showError('Token (API Key) do Gemini não encontrado. Salve seu token primeiro.');
@@ -201,21 +207,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setLoading(true);
 
-        // --- 2. Preparação dos Agentes ---
-        const baseSystemPrompt = `Você é um debatedor em um debate. O tema é: "${topic}". 
-Seja assertivo, mantenha seus argumentos concisos e responda diretamente ao debatedor anterior.`;
+        const baseSystemPrompt = `Você é um debatedor em um debate. O tema é: "${topic}". Seja assertivo, mantenha seus argumentos concisos e responda diretamente ao debatedor anterior.`;
         
         const agents = agentPersonalitiesList.map((personality, index) => ({
-            name: `Agente ${index + 1} (${personality.split(' ')[0]})`, // Nome curto, ex: "Agente 1 (Cientista)"
+            name: `Agente ${index + 1} (${personality.split(' ')[0].replace(',', '')})`,
             index: index,
             systemPrompt: `${baseSystemPrompt}\nSUA PERSONALIDADE: ${personality}. Defenda esse ponto de vista.`
         }));
 
-        let conversationHistory = []; // Formato: { role: 'user' | 'model', text: '...' }
+        let conversationHistory = []; 
         const agentCount = agents.length;
-        let currentMessage = ""; // A mensagem do último debatedor
+        let currentMessage = ""; 
 
-        // --- 3. O Loop do Debate ---
+        // --- 3. O Loop do Debate (ATUALIZADO) ---
         try {
             for (let iter = 0; iter < iterationCount; iter++) {
                 for (let agentIdx = 0; agentIdx < agentCount; agentIdx++) {
@@ -223,7 +227,6 @@ Seja assertivo, mantenha seus argumentos concisos e responda diretamente ao deba
                     const currentAgent = agents[agentIdx];
                     updateStatus(`Iteração ${iter + 1}/${iterationCount} - Vez de: ${currentAgent.name}`);
 
-                    // A instrução (prompt) muda se for o primeiro turno ou não
                     let instruction;
                     if (iter === 0 && agentIdx === 0) {
                         instruction = `Você é o primeiro a falar. Comece o debate sobre o tema: "${topic}". Apresente seu argumento inicial.`;
@@ -234,13 +237,22 @@ Seja assertivo, mantenha seus argumentos concisos e responda diretamente ao deba
                     // Chama a API
                     const response = await callGemini(apiKey, currentAgent.systemPrompt, instruction, conversationHistory);
                     
-                    // Atualiza o estado
-                    currentMessage = response; // Salva a resposta para o próximo agente
+                    currentMessage = response; 
                     appendLog(currentAgent.name, response, currentAgent.index);
                     
-                    // Adiciona ao histórico para contexto futuro
                     conversationHistory.push({ role: 'user', text: instruction });
                     conversationHistory.push({ role: 'model', text: response });
+
+                    // --- INÍCIO DA MUDANÇA ---
+                    // Verifica se este NÃO é o último turno de todos
+                    const isLastTurn = (iter === iterationCount - 1) && (agentIdx === agentCount - 1);
+                    
+                    if (!isLastTurn) {
+                        // Se não for o último turno, espera 5 segundos
+                        updateStatus(`Aguardando 5s para evitar limite de API... (Próximo: ${agents[(agentIdx + 1) % agentCount].name})`);
+                        await delay(5000); // 5000 milissegundos = 5 segundos
+                    }
+                    // --- FIM DA MUDANÇA ---
                 }
             }
             updateStatus('Debate concluído.');
