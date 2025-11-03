@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Constantes
     const API_KEY_STORAGE = 'gemini_api_key';
-    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
 
     // Event Listeners
     loadToken();
