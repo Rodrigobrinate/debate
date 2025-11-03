@@ -3,46 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Julgamento com IA</title>
+    <title>Gerador de Debate com IA</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>🏛️ Simulador de Julgamento</h1>
-        <p>Apresente os fatos de um caso e veja os agentes de IA (Promotor, Defesa e Juiz) conduzirem um julgamento.</p>
+        <h1>🤖 Gerador de Debate com IA</h1>
+        <p>Configure agentes de IA com personalidades distintas e veja-os debater um tema.</p>
 
-        <div class="settings">
+        <div class="settings-box">
+            <h3>Configuração da API</h3>
             <label for="api-key">Token (API Key) do Gemini:</label>
             <div class="token-group">
                 <input type="password" id="api-key" placeholder="Cole sua API Key aqui">
                 <button id="save-token-btn">Salvar Token</button>
             </div>
-            <small>Seu token será salvo no `localStorage` do seu navegador.</small>
+            <small>Salvo no `localStorage` do seu navegador.</small>
         </div>
 
-        <div class="case-input">
-            <label for="case-details">Descrição do Caso:</label>
-            <textarea id="case-details" rows="8" placeholder="Descreva todos os fatos, evidências e partes envolvidas no caso..."></textarea>
-            <button id="start-trial-btn">Iniciar Julgamento</button>
+        <div class="setup-box">
+            <h3>Configuração do Debate</h3>
+            <div class="debate-controls">
+                <div class="control-group">
+                    <label for="agent-count">Número de Agentes</label>
+                    <input type="number" id="agent-count" value="2" min="2">
+                </div>
+                <div class="control-group">
+                    <label for="iteration-count">Número de Iterações</label>
+                    <input type="number" id="iteration-count" value="2" min="1">
+                </div>
+                <button id="setup-agents-btn">Configurar Agentes</button>
+            </div>
+            
+            <div id="agent-personalities">
+                </div>
+
+            <div id="topic-setup" style="display: none;">
+                <label for="debate-topic">Tema do Debate:</label>
+                <textarea id="debate-topic" rows="3" placeholder="Ex: 'Redes sociais fazem mais mal do que bem?'"></textarea>
+                <button id="start-debate-btn">Iniciar Debate</button>
+            </div>
         </div>
 
-        <div class="trial-output">
-            <h2>Relatório do Julgamento</h2>
-
+        <div class="output-box">
+            <h2>Transcrição do Debate</h2>
+            
             <div id="error-display" style="display: none;"></div>
             
             <div id="loading-spinner" class="spinner-container" style="display: none;">
                 <div class="spinner"></div>
-                <p id="status-message">Julgamento em andamento...</p>
+                <p id="status-message">Debate em andamento...</p>
             </div>
 
-            <div id="trial-log">
-                </div>
-            
-            <hr>
-            
-            <h3>Veredito Final</h3>
-            <div id="verdict-output">
+            <div id="debate-log">
                 </div>
         </div>
     </div>
