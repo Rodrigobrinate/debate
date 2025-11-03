@@ -25,16 +25,19 @@ h1 {
 
 h2, h3 {
     color: #34495e;
+    margin-top: 0;
 }
 
-/* Configurações do Token */
-.settings {
-    background-color: #ecf0f1;
+/* Caixas de Seção */
+.settings-box, .setup-box, .output-box {
+    background-color: #fdfdfd;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 25px;
 }
 
+/* Configuração do Token */
 .token-group {
     display: flex;
     gap: 10px;
@@ -43,19 +46,21 @@ h2, h3 {
 
 input[type="password"],
 input[type="text"],
+input[type="number"],
 textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid #bdc3c7;
     border-radius: 6px;
     font-size: 16px;
-    box-sizing: border-box; /* Garante que o padding não afete a largura */
+    box-sizing: border-box;
 }
 
 input[type="password"] {
     flex-grow: 1;
 }
 
+/* Botões */
 button {
     background-color: #3498db;
     color: white;
@@ -81,35 +86,67 @@ button:disabled {
     background-color: #2ecc71;
     flex-shrink: 0;
 }
+#save-token-btn:hover { background-color: #27ae60; }
 
-#save-token-btn:hover {
-    background-color: #27ae60;
-}
-
-/* Input do Caso */
-.case-input {
-    margin-bottom: 30px;
-}
-
-textarea {
-    resize: vertical;
-    min-height: 120px;
-    margin-top: 5px;
-}
-
-#start-trial-btn {
+#start-debate-btn {
+    background-color: #e74c3c;
     width: 100%;
     margin-top: 15px;
     padding: 15px;
     font-size: 18px;
 }
+#start-debate-btn:hover { background-color: #c0392b; }
 
-/* Saída do Julgamento */
-.trial-output {
-    margin-top: 20px;
+
+/* Configuração do Debate */
+.debate-controls {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+.control-group {
+    flex-grow: 1;
+}
+.control-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+#setup-agents-btn {
+    flex-shrink: 0;
+    height: 48px; /* Alinhar com inputs */
 }
 
-/* NOVO: Estilo da Caixa de Erro */
+/* Inputs de Personalidade */
+#agent-personalities {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.agent-input-group {
+    display: flex;
+    flex-direction: column;
+}
+.agent-input-group label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+.agent-personality-input {
+    background-color: #fdfdfd;
+}
+
+#topic-setup {
+    margin-top: 20px;
+}
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Saída do Debate */
 #error-display {
     background-color: #fdf2f2;
     color: #c0392b;
@@ -118,55 +155,17 @@ textarea {
     padding: 15px;
     margin-bottom: 20px;
     font-weight: bold;
-    display: none; /* Começa escondido */
 }
 
-#trial-log .argument {
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 8px;
-    border-left: 5px solid;
-}
-
-#trial-log .argument.prosecutor {
-    background-color: #fdf2f2;
-    border-color: #e74c3c;
-}
-
-#trial-log .argument.defense {
-    background-color: #f3f9ff;
-    border-color: #3498db;
-}
-
-#trial-log .argument strong {
-    font-size: 1.1em;
-    display: block;
-    margin-bottom: 5px;
-}
-
-#verdict-output {
-    background-color: #fdfdf5;
-    border: 1px solid #f1c40f;
-    border-left-width: 5px;
-    padding: 15px;
-    border-radius: 8px;
-    white-space: pre-wrap; /* Preserva a formatação do texto */
-}
-
-/* Spinner de Carregamento */
 .spinner-container {
     text-align: center;
     padding: 30px;
-    display: none; /* Começa escondido */
 }
-
-/* ATUALIZADO: O P dentro do spinner */
 .spinner-container p {
     font-size: 1.1em;
     color: #555;
     font-weight: 500;
 }
-
 .spinner {
     border: 6px solid #f3f3f3;
     border-top: 6px solid #3498db;
@@ -176,8 +175,25 @@ textarea {
     animation: spin 1s linear infinite;
     margin: 0 auto 15px auto;
 }
-
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Log do Debate */
+#debate-log .debate-turn {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 5px solid;
+}
+#debate-log .debate-turn strong {
+    font-size: 1.1em;
+    display: block;
+    margin-bottom: 5px;
+}
+/* Cores Cíclicas para Agentes */
+.agent-color-0 { background-color: #f3f9ff; border-color: #3498db; }
+.agent-color-1 { background-color: #fdf2f2; border-color: #e74c3c; }
+.agent-color-2 { background-color: #f2fdf5; border-color: #2ecc71; }
+.agent-color-3 { background-color: #fdfdf5; border-color: #f1c40f; }
