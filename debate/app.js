@@ -1,32 +1,42 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Seletores de Elementos
+    // --- Seletores de Elementos ---
+    
+    // Token
     const apiKeyInput = document.getElementById('api-key');
     const saveTokenBtn = document.getElementById('save-token-btn');
-    const startTrialBtn = document.getElementById('start-trial-btn');
-    const caseDetailsInput = document.getElementById('case-details');
-    const trialLog = document.getElementById('trial-log');
-    const verdictOutput = document.getElementById('verdict-output');
-    const loadingSpinner = document.getElementById('loading-spinner');
     
-    // NOVO: Seletores para status e erro
+    // Setup
+    const agentCountInput = document.getElementById('agent-count');
+    const iterationCountInput = document.getElementById('iteration-count');
+    const setupAgentsBtn = document.getElementById('setup-agents-btn');
+    const agentPersonalitiesDiv = document.getElementById('agent-personalities');
+    const topicSetupDiv = document.getElementById('topic-setup');
+    const debateTopicInput = document.getElementById('debate-topic');
+    const startDebateBtn = document.getElementById('start-debate-btn');
+    
+    // Output
+    const debateLog = document.getElementById('debate-log');
+    const loadingSpinner = document.getElementById('loading-spinner');
     const statusMessage = document.getElementById('status-message');
     const errorDisplay = document.getElementById('error-display');
 
-    // Constantes
+    // --- Constantes ---
     const API_KEY_STORAGE = 'gemini_api_key';
     const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
 
-    // Event Listeners
+    // --- Event Listeners ---
     loadToken();
     saveTokenBtn.addEventListener('click', saveToken);
-    startTrialBtn.addEventListener('click', startTrial);
+    setupAgentsBtn.addEventListener('click', setupAgentInputs);
+    startDebateBtn.addEventListener('click', startDebate);
 
+    // --- Lógica de Token ---
     function saveToken() {
         const apiKey = apiKeyInput.value.trim();
         if (apiKey) {
             localStorage.setItem(API_KEY_STORAGE, apiKey);
             alert('Token salvo com sucesso!');
-            location.reload();
+            apiKeyInput.placeholder = 'Token salvo no localStorage';
         } else {
             alert('Por favor, insira um token.');
         }
@@ -40,11 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Função principal da API (sem mudanças)
-    async function callGemini(apiKey, rolePrompt, instruction, history) {
+    // --- Lógica de Geração de API ---
+    async function callGemini(apiKey, systemPrompt, instruction, history) {
         const systemInstruction = {
             role: "system",
-            parts: [{ text: rolePrompt }]
+            parts: [{ text: systemPrompt }]
         };
 
         const formattedHistory = history.map(turn => ({
@@ -65,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     "systemInstruction": systemInstruction,
                     "contents": [...formattedHistory, userInstruction],
                     "generationConfig": {
-                        "temperature": 0.7,
+                        "temperature": 0.8,
                         "topK": 1,
                         "topP": 1,
                         "maxOutputTokens": 1024,
@@ -75,27 +85,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errorBody = await response.json();
-                // NOVO: Tratamento de erro mais específico
-                let errorMsg = `Erro na API: ${response.status}`;
-                if (errorBody.error) {
-                    errorMsg = errorBody.error.message;
-                    if (errorBody.error.status === 'INVALID_ARGUMENT') {
-                         errorMsg = "API Key inválida ou mal formatada. Verifique seu Token.";
-                    } else if (errorBody.error.status === 'PERMISSION_DENIED') {
-                        errorMsg = "A API Key foi recusada. Verifique se ela está correta e se a API Generative Language está ativa no seu projeto Google Cloud.";
-                    }
+                let errorMsg = errorBody.error ? errorBody.error.message : 'Erro desconhecido na API';
+                if (errorBody.error && errorBody.error.status === 'INVALID_ARGUMENT') {
+                    errorMsg = "API Key inválida ou mal formatada. Verifique seu Token.";
                 }
                 throw new Error(errorMsg);
             }
 
             const data = await response.json();
-            
-            if (data.candidates && data.candidates.length > 0) {
-                if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
-                    return data.candidates[0].content.parts[0].text;
-                }
+            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                return data.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('Resposta da API incompleta ou vazia.');
             }
-            throw new Error('Resposta da API incompleta ou vazia.');
 
         } catch (error) {
             console.error('Erro ao chamar o Gemini:', error);
@@ -103,39 +105,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- NOVAS FUNÇÕES DE UI ---
+    // --- Lógica de UI (Helpers) ---
 
-    function appendLog(role, message) {
-        const roleClass = role === "Promotor" ? "prosecutor" : "defense";
-        const argumentDiv = document.createElement('div');
-        argumentDiv.className = `argument ${roleClass}`;
-        argumentDiv.innerHTML = `<strong>${role}:</strong><p>${message.replace(/\n/g, '<br>')}</p>`;
-        trialLog.appendChild(argumentDiv);
-    }
-
-    function appendVerdict(message) {
-        verdictOutput.innerHTML = `<p>${message.replace(/\n/g, '<br>')}</p>`;
-    }
-
-    // ATUALIZADA: Função setLoading
     function setLoading(isLoading) {
-        if (isLoading) {
-            loadingSpinner.style.display = 'block';
-            startTrialBtn.disabled = true;
-            startTrialBtn.textContent = 'Julgamento em Andamento...';
-        } else {
-            loadingSpinner.style.display = 'none';
-            startTrialBtn.disabled = false;
-            startTrialBtn.textContent = 'Iniciar Julgamento';
-        }
+        loadingSpinner.style.display = isLoading ? 'block' : 'none';
+        startDebateBtn.disabled = isLoading;
+        startDebateBtn.textContent = isLoading ? 'Debate em Andamento...' : 'Iniciar Debate';
     }
 
-    // NOVO: Função para atualizar a mensagem de status
     function updateStatus(message) {
         statusMessage.textContent = message;
     }
 
-    // NOVO: Função para exibir ou limpar erros
     function showError(message) {
         if (message) {
             errorDisplay.textContent = message;
@@ -146,106 +127,130 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LÓGICA DO JULGAMENTO (ATUALIZADA) ---
+    function appendLog(agentName, message, agentIndex) {
+        const logEntry = document.createElement('div');
+        // Usa o módulo (%) para ciclar entre as 4 classes de cores definidas no CSS
+        logEntry.className = `debate-turn agent-color-${agentIndex % 4}`;
+        logEntry.innerHTML = `<strong>${agentName}:</strong><p>${message.replace(/\n/g, '<br>')}</p>`;
+        debateLog.appendChild(logEntry);
+        // Rola para a nova mensagem
+        logEntry.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
 
-    async function startTrial() {
-        const apiKey = localStorage.getItem(API_KEY_STORAGE);
-        const caseDetails = caseDetailsInput.value.trim();
+    // --- Lógica Principal ---
 
-        if (!apiKey) {
-            alert('Por favor, salve seu Token (API Key) do Gemini primeiro.');
+    // Passo 1: Gerar os campos de input para as personalidades
+    function setupAgentInputs() {
+        const agentCount = parseInt(agentCountInput.value, 10);
+        
+        if (agentCount < 2) {
+            showError("Você precisa de pelo menos 2 agentes para um debate.");
             return;
         }
-        if (!caseDetails) {
-            alert('Por favor, descreva os fatos do caso.');
-            return;
-        }
+        
+        showError(null); // Limpa erros
+        agentPersonalitiesDiv.innerHTML = ''; // Limpa campos antigos
 
-        // Limpar logs e erros anteriores
-        trialLog.innerHTML = '';
-        verdictOutput.innerHTML = '';
-        showError(null); // NOVO: Limpa erros antigos
-        setLoading(true);
-        updateStatus('Iniciando simulação...'); // NOVO: Mensagem inicial
-
-        let conversationHistory = [];
-        const BASE_SYSTEM_PROMPT = `Você é um agente em uma simulação de julgamento criminal. Os fatos do caso são: "${caseDetails}". Atenha-se estritamente aos fatos fornecidos e ao seu papel. Seja profissional e use linguagem jurídica apropriada.`;
-        const PROSECUTOR_PROMPT = `${BASE_SYSTEM_PROMPT}\nSeu papel: PROMOTORIA. Seu objetivo: Provar a culpa do réu.`;
-        const DEFENSE_PROMPT = `${BASE_SYSTEM_PROMPT}\nSeu papel: ADVOGADO(A) DE DEFESA. Seu objetivo: Criar dúvida razoável ou provar a inocência do réu.`;
-        const JUDGE_PROMPT = `${BASE_SYSTEM_PROMPT}\nSeu papel: JUIZ(A). Seu objetivo: Ser imparcial e entregar um veredito baseado SOMENTE nos argumentos.`;
-
-        try {
-            // --- FASE 1: DECLARAÇÕES INICIAIS ---
-            updateStatus('FASE 1: Aguardando Declaração Inicial da Promotoria...');
-            let prosecutorMsg = await callGemini(apiKey, PROSECUTOR_PROMPT, "Apresente sua declaração inicial.", conversationHistory);
-            appendLog("Promotor", prosecutorMsg);
-            conversationHistory.push({ role: 'model', text: `PROMOTOR: ${prosecutorMsg}` });
-
-            updateStatus('FASE 1: Aguardando Declaração Inicial da Defesa...');
-            let defenseMsg = await callGemini(apiKey, DEFENSE_PROMPT, `A promotoria fez sua declaração. Agora, apresente sua declaração inicial.`, conversationHistory);
-            appendLog("Defesa", defenseMsg);
-            conversationHistory.push({ role: 'model', text: `DEFESA: ${defenseMsg}` });
-
-            // --- FASE 2: APRESENTAÇÃO DE ARGUMENTOS ---
-            updateStatus('FASE 2: Aguardando 1º Argumento da Promotoria...');
-            prosecutorMsg = await callGemini(apiKey, PROSECUTOR_PROMPT, "Apresente seu primeiro argumento principal.", conversationHistory);
-            appendLog("Promotor", prosecutorMsg);
-            conversationHistory.push({ role: 'model', text: `PROMOTOR: ${prosecutorMsg}` });
-
-            updateStatus('FASE 2: Aguardando 1ª Refutação da Defesa...');
-            defenseMsg = await callGemini(apiKey, DEFENSE_PROMPT, `A promotoria argumentou: "${prosecutorMsg}". Apresente sua contestação.`, conversationHistory);
-            appendLog("Defesa", defenseMsg);
-            conversationHistory.push({ role: 'model', text: `DEFESA: ${defenseMsg}` });
-
-            // Round 2
-            updateStatus('FASE 2: Aguardando 2º Argumento da Promotoria...');
-            prosecutorMsg = await callGemini(apiKey, PROSECUTOR_PROMPT, `A defesa respondeu: "${defenseMsg}". Apresente sua réplica ou seu próximo argumento.`, conversationHistory);
-            appendLog("Promotor", prosecutorMsg);
-            conversationHistory.push({ role: 'model', text: `PROMOTOR: ${prosecutorMsg}` });
-
-            updateStatus('FASE 2: Aguardando 2ª Refutação da Defesa...');
-            defenseMsg = await callGemini(apiKey, DEFENSE_PROMPT, `A promotoria continuou: "${prosecutorMsg}". Apresente sua tréplica.`, conversationHistory);
-            appendLog("Defesa", defenseMsg);
-            conversationHistory.push({ role: 'model', text: `DEFESA: ${defenseMsg}` });
+        for (let i = 0; i < agentCount; i++) {
+            const div = document.createElement('div');
+            div.className = 'agent-input-group';
             
-            // Round 3
-            updateStatus('FASE 2: Aguardando 3º Argumento da Promotoria...');
-            prosecutorMsg = await callGemini(apiKey, PROSECUTOR_PROMPT, `A defesa disse: "${defenseMsg}". Apresente seu argumento final ou evidência chave.`, conversationHistory);
-            appendLog("Promotor", prosecutorMsg);
-            conversationHistory.push({ role: 'model', text: `PROMOTOR: ${prosecutorMsg}` });
+            const label = document.createElement('label');
+            label.textContent = `Personalidade do Agente ${i + 1}:`;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'agent-personality-input';
+            input.placeholder = `Ex: 'Um cientista cético', 'Um empreendedor otimista'`;
+            
+            div.appendChild(label);
+            div.appendChild(input);
+            agentPersonalitiesDiv.appendChild(div);
+        }
 
-            updateStatus('FASE 2: Aguardando 3ª Refutação da Defesa...');
-            defenseMsg = await callGemini(apiKey, DEFENSE_PROMPT, `A promotoria concluiu sua argumentação com: "${prosecutorMsg}". Apresente seu argumento final de refutação.`, conversationHistory);
-            appendLog("Defesa", defenseMsg);
-            conversationHistory.push({ role: 'model', text: `DEFESA: ${defenseMsg}` });
+        // Mostra a seção do tópico do debate
+        topicSetupDiv.style.display = 'block';
+    }
 
-            // --- FASE 3: ALEGAÇÕES FINAIS ---
-            updateStatus('FASE 3: Aguardando Alegações Finais da Promotoria...');
-            prosecutorMsg = await callGemini(apiKey, PROSECUTOR_PROMPT, "Apresente suas alegações finais.", conversationHistory);
-            appendLog("Promotor", prosecutorMsg);
-            conversationHistory.push({ role: 'model', text: `PROMOTOR: ${prosecutorMsg}` });
+    // Passo 2: Iniciar o debate
+    async function startDebate() {
+        showError(null);
+        debateLog.innerHTML = '';
+        
+        // --- 1. Validação dos Inputs ---
+        const apiKey = localStorage.getItem(API_KEY_STORAGE);
+        if (!apiKey) {
+            showError('Token (API Key) do Gemini não encontrado. Salve seu token primeiro.');
+            return;
+        }
 
-            updateStatus('FASE 3: Aguardando Alegações Finais da Defesa...');
-            defenseMsg = await callGemini(apiKey, DEFENSE_PROMPT, `A promotoria terminou. Apresente suas alegações finais.`, conversationHistory);
-            appendLog("Defesa", defenseMsg);
-            conversationHistory.push({ role: 'model', text: `DEFESA: ${defenseMsg}` });
+        const iterationCount = parseInt(iterationCountInput.value, 10);
+        const topic = debateTopicInput.value.trim();
+        
+        const personalityInputs = document.querySelectorAll('.agent-personality-input');
+        const agentPersonalitiesList = Array.from(personalityInputs).map(input => input.value.trim());
+        
+        if (agentPersonalitiesList.length === 0 || agentPersonalitiesList.some(p => p === '')) {
+            showError('Por favor, defina a personalidade de todos os agentes.');
+            return;
+        }
+        if (!topic) {
+            showError('Por favor, defina um tema para o debate.');
+            return;
+        }
 
-            // --- FASE 4: VEREDITO ---
-            updateStatus('FASE 4: O Juiz está deliberando o Veredito...');
-            const verdict = await callGemini(apiKey, JUDGE_PROMPT, "Você ouviu todo o debate (registrado no histórico). Delibere e apresente seu veredito final, explicando seu raciocínio.", conversationHistory);
-            appendVerdict(verdict);
+        setLoading(true);
 
-            updateStatus('Julgamento Concluído.');
+        // --- 2. Preparação dos Agentes ---
+        const baseSystemPrompt = `Você é um debatedor em um debate. O tema é: "${topic}". 
+Seja assertivo, mantenha seus argumentos concisos e responda diretamente ao debatedor anterior.`;
+        
+        const agents = agentPersonalitiesList.map((personality, index) => ({
+            name: `Agente ${index + 1} (${personality.split(' ')[0]})`, // Nome curto, ex: "Agente 1 (Cientista)"
+            index: index,
+            systemPrompt: `${baseSystemPrompt}\nSUA PERSONALIDADE: ${personality}. Defenda esse ponto de vista.`
+        }));
 
+        let conversationHistory = []; // Formato: { role: 'user' | 'model', text: '...' }
+        const agentCount = agents.length;
+        let currentMessage = ""; // A mensagem do último debatedor
+
+        // --- 3. O Loop do Debate ---
+        try {
+            for (let iter = 0; iter < iterationCount; iter++) {
+                for (let agentIdx = 0; agentIdx < agentCount; agentIdx++) {
+                    
+                    const currentAgent = agents[agentIdx];
+                    updateStatus(`Iteração ${iter + 1}/${iterationCount} - Vez de: ${currentAgent.name}`);
+
+                    // A instrução (prompt) muda se for o primeiro turno ou não
+                    let instruction;
+                    if (iter === 0 && agentIdx === 0) {
+                        instruction = `Você é o primeiro a falar. Comece o debate sobre o tema: "${topic}". Apresente seu argumento inicial.`;
+                    } else {
+                        instruction = `O debatedor anterior disse: "${currentMessage}". Responda a este argumento e defenda seu ponto de vista.`;
+                    }
+                    
+                    // Chama a API
+                    const response = await callGemini(apiKey, currentAgent.systemPrompt, instruction, conversationHistory);
+                    
+                    // Atualiza o estado
+                    currentMessage = response; // Salva a resposta para o próximo agente
+                    appendLog(currentAgent.name, response, currentAgent.index);
+                    
+                    // Adiciona ao histórico para contexto futuro
+                    conversationHistory.push({ role: 'user', text: instruction });
+                    conversationHistory.push({ role: 'model', text: response });
+                }
+            }
+            updateStatus('Debate concluído.');
+            
         } catch (error) {
-            console.error("Erro durante o julgamento:", error);
-            // NOVO: Exibe o erro na UI
-            showError(`Falha na simulação: ${error.message}`);
-            updateStatus('O julgamento foi interrompido por um erro.');
+            console.error("Falha no debate:", error);
+            showError(`O debate falhou: ${error.message}`);
+            updateStatus('Debate interrompido por um erro.');
         } finally {
-            // Limpa a mensagem de status e para o spinner
             setLoading(false);
-            updateStatus(''); // Limpa a mensagem final
         }
     }
 });
