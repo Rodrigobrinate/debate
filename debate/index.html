@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Julgamento com IA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🏛️ Simulador de Julgamento</h1>
+        <p>Apresente os fatos de um caso e veja os agentes de IA (Promotor, Defesa e Juiz) conduzirem um julgamento.</p>
+
+        <div class="settings">
+            <label for="api-key">Token (API Key) do Gemini:</label>
+            <div class="token-group">
+                <input type="password" id="api-key" placeholder="Cole sua API Key aqui">
+                <button id="save-token-btn">Salvar Token</button>
+            </div>
+            <small>Seu token será salvo no `localStorage` do seu navegador.</small>
+        </div>
+
+        <div class="case-input">
+            <label for="case-details">Descrição do Caso:</label>
+            <textarea id="case-details" rows="8" placeholder="Descreva todos os fatos, evidências e partes envolvidas no caso..."></textarea>
+            <button id="start-trial-btn">Iniciar Julgamento</button>
+        </div>
+
+        <div class="trial-output">
+            <h2>Relatório do Julgamento</h2>
+
+            <div id="error-display" style="display: none;"></div>
+            
+            <div id="loading-spinner" class="spinner-container" style="display: none;">
+                <div class="spinner"></div>
+                <p id="status-message">Julgamento em andamento...</p>
+            </div>
+
+            <div id="trial-log">
+                </div>
+            
+            <hr>
+            
+            <h3>Veredito Final</h3>
+            <div id="verdict-output">
+                </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
