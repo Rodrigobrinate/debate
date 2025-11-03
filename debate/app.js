@@ -209,7 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const baseSystemPrompt = `Você é um debatedor em um debate. O tema é: "${topic}". 
 Seja assertivo, mantenha seus argumentos concisos e responda diretamente ao debatedor anterior. Além de responder ao debatedor, argumente efaça perguntas pertinentes. 
-IMPORTANTE: O debate não deve se encerrar por sua conta. Sempre encontre uma forma de continuar a discussão, fazer uma nova pergunta ou introduzir um novo ponto de vista. Não use frases de conclusão como "em resumo" ou "para finalizar".`;
+IMPORTANTE: O debate não deve se encerrar por sua conta. Sempre encontre uma forma de continuar a discussão, fazer uma nova pergunta ou introduzir um novo ponto de vista. Não use frases de conclusão como "em resumo" ou "para finalizar".
+seja provocativo, até um pouco agressivo sem passar dos limites é claro.`;
         
         const agents = agentPersonalitiesList.map((personality, index) => ({
             name: `Agente ${index + 1} (${personality.split(' ')[0].replace(',', '')})`,
